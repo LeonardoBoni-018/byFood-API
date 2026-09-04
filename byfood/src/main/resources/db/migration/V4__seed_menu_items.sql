@@ -1,0 +1,17 @@
+INSERT INTO menu_item (name, description, price, category, available, created_at, updated_at) VALUES
+('Margherita', 'Molho de tomate, mussarela fresca, manjericão e azeite', 45.90, 'Pizzas', true, NOW(), NOW()),
+('Calabresa', 'Calabresa artesanal, cebola roxa e azeitonas pretas', 42.50, 'Pizzas', true, NOW(), NOW()),
+('Quatro Queijos', 'Mussarela, provolone, gorgonzola e parmesão', 49.90, 'Pizzas', true, NOW(), NOW()),
+('Frango com Catupiry', 'Frango desfiado, catupiry cremoso e milho', 44.00, 'Pizzas', true, NOW(), NOW()),
+('Hambúrguer Clássico', 'Picanha 180g, queijo cheddar, alface, tomate e molho especial', 38.90, 'Burgers', true, NOW(), NOW()),
+('Smash Burger', 'Dupla smash 150g, queijo Americano, cebola caramelizada e molho BBQ', 42.00, 'Burgers', true, NOW(), NOW()),
+('Bacon Burger', 'Picanha 180g, queijo cheddar, bacon crocante e molho da casa', 44.50, 'Burgers', true, NOW(), NOW()),
+('Cheddar Onion', 'Picanha 180g, onion rings, cheddar derretido e molho ranch', 46.00, 'Burgers', true, NOW(), NOW()),
+('Suco Natural de Laranja', 'Laranja fresca espremidna na hora', 12.00, 'Bebidas', true, NOW(), NOW()),
+('Guaraná Antarctica 350ml', 'Lata gelada', 7.00, 'Bebidas', true, NOW(), NOW()),
+('Coca-Cola 350ml', 'Lata gelada', 8.00, 'Bebidas', true, NOW(), NOW()),
+('Água Mineral 500ml', 'Com ou sem gás', 5.00, 'Bebidas', true, NOW(), NOW()),
+('Pudim de Leite', 'Pudim caseiro com calda de caramelo', 16.90, 'Sobremesas', true, NOW(), NOW()),
+('Brownie com Sorvete', 'Brownie de chocolate belga com bola de sorvete de creme', 22.00, 'Sobremesas', true, NOW(), NOW()),
+('Petit Gâteau', 'Bolinho de chocolate com centro derretido e sorvete', 24.90, 'Sobremesas', true, NOW(), NOW()),
+('Churros', '4 unidades com chocolate ao leite e doce de leite', 18.00, 'Sobremesas', true, NOW(), NOW());
