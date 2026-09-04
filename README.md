@@ -1,143 +1,78 @@
-# byFood
+# byFood API
 
-API de restaurante fixo (estilo iFood) para gerenciar cardápio e pedidos, com confirmação via WhatsApp. Construída com Spring Boot 4.
-
-## Fases do projeto
-
-- **Fase 0 — Fundação** (concluída): scaffold do projeto, domínio base (Restaurant, MenuItem), migrations Flyway, perfis dev/prod, Docker, testes de integração.
-- **Fase 1 — Cardápio + Autenticação** (concluída): usuário admin, login JWT, CRUD do cardápio e endpoints públicos.
-- **Fase 2 — Pedidos** (concluída): criação de pedidos, status workflow, gestão admin e link WhatsApp.
-- **Fase 3 — WhatsApp**: link `wa.me` com mensagem pré-preenchida ao finalizar pedido (sem Evolution API).
-- **Melhorias (Opção B)**: paginação, soft-delete do cardápio, mensagens de erro em português e rate limiting no login.
-- **Fase 4 — Pagamentos**: a definir (Mercado Pago como candidato).
+API de restaurante (estilo iFood) para gerenciar cardápio e pedidos, com confirmação via WhatsApp. Spring Boot 4.
 
 ## Stack
 
 - Java 17, Spring Boot 4.1.0, Maven
-- Spring Data JPA + PostgreSQL
+- Spring Data JPA + PostgreSQL 16
 - Flyway (schema versionado)
 - Spring Security + JWT (jjwt 0.12.6)
 - Springdoc OpenAPI (Swagger UI)
 - Testcontainers (testes de integração)
 - Docker + Docker Compose
 
-## Estrutura
+## Como rodar
 
-```
-byfood/
-├── docker-compose.yml
-├── Dockerfile
-└── src/
-    ├── main/
-    │   ├── java/com/byfood/api/
-    │   │   ├── common/BaseEntity.java
-    │   │   ├── config/         # SecurityConfig, JwtService, JpaAuditingConfig
-    │   │   ├── controller/     # AuthController, RestaurantController
-    │   │   ├── dto/            # Records de request/response
-    │   │   ├── exception/      # NotFoundException, ConflictException, GlobalExceptionHandler
-    │   │   ├── mapper/
-    │   │   ├── model/          # Restaurant, MenuItem, AdminUser
-    │   │   ├── repository/
-    │   │   └── service/        # AuthService, AdminUserDetailsService, RestaurantService
-    │   └── resources/
-    │       ├── application.yaml / application-dev.yaml / application-prod.yaml
-    │       └── db/migration/   # V1__init.sql, V2__admin_user.sql
-    └── test/java/com/byfood/api/
+```bash
+# Com Docker (recomendado)
+docker compose up --build -d
+
+# Sem Docker (precisa de Postgres rodando na porta 5432)
+.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-## Endpoints atuais
+A API sobe na porta **8080**.
 
-| Método | Rota                       | Acesso  | Descrição |
-|--------|----------------------------|---------|-----------|
-| GET    | `/public/restaurant`       | público | Dados do restaurante |
-| GET    | `/public/menu`             | público | Cardápio disponível — **paginado** (`?page=&size=`), ordenado por categoria/nome |
-| POST   | `/public/orders`           | público | Cria pedido |
-| GET    | `/public/orders/{id}`      | público | Consulta pedido |
-| POST   | `/auth/login`              | público | Login admin, retorna JWT |
-| GET    | `/admin/menu`              | JWT     | Lista itens do cardápio (todos, **paginado**) |
-| GET    | `/admin/menu/{id}`         | JWT     | Detalhe do item |
-| POST   | `/admin/menu`              | JWT     | Cria item |
-| PUT    | `/admin/menu/{id}`         | JWT     | Atualiza item |
-| DELETE | `/admin/menu/{id}`         | JWT     | **Soft-delete**: marca como indisponível |
-| GET    | `/admin/orders`            | JWT     | Lista pedidos — **paginado** (`?page=&size=`), mais recentes primeiro |
-| PUT    | `/admin/orders/{id}/status`| JWT     | Atualiza status do pedido |
-
-## Variáveis de ambiente
-
-| Variável         | Dev (default)                                 | Prod (obrigatório)              |
-|------------------|------------------------------------------------|---------------------------------|
-| `DB_URL`         | `jdbc:postgresql://localhost:5432/byfood`      | URL do banco                    |
-| `DB_USERNAME`    | `postgres`                                     | usuário do banco                |
-| `DB_PASSWORD`    | `123456`                                       | senha do banco                  |
-| `JWT_SECRET`     | `byfood-dev-secret-key-change-in-production-123456` | secret **≥ 32 bytes** (HS256) |
-| `JWT_EXPIRATION` | `86400000` (24h em ms)                         | expiração em ms                 |
-
-> O profile `prod` falha ao subir se qualquer variável obrigatória não for definida.
-
-## Usuário admin inicial (dev)
+### Credenciais admin
 
 - Usuário: `admin`
 - Senha: `admin123`
 
-## Como rodar
+### Swagger UI
 
-### Local (dev)
+- `http://localhost:8080/swagger-ui.html`
 
-```bash
-cd byfood
-.\mvnw.cmd spring-boot:run
-# profile default usa Testcontainers? Não: rode com -Dspring-boot.run.profiles=dev
-```
+## Endpoints
 
-Com Docker Compose:
+| Método | Rota | Acesso | Descrição |
+|--------|------|--------|-----------|
+| GET | `/public/restaurant` | público | Dados do restaurante |
+| GET | `/public/menu` | público | Cardápio paginado |
+| POST | `/public/orders` | público | Cria pedido |
+| GET | `/public/orders/{id}` | público | Consulta pedido |
+| POST | `/auth/login` | público | Login admin (JWT) |
+| GET | `/admin/menu` | JWT | Lista cardápio (paginado) |
+| POST | `/admin/menu` | JWT | Cria item |
+| PUT | `/admin/menu/{id}` | JWT | Atualiza item |
+| DELETE | `/admin/menu/{id}` | JWT | Soft-delete (indisponível) |
+| GET | `/admin/orders` | JWT | Lista pedidos (paginado) |
+| PUT | `/admin/orders/{id}/status` | JWT | Atualiza status |
 
-```bash
-docker compose up --build -d
-```
+## Variáveis de ambiente
 
-### Testes
+| Variável | Dev (default) | Prod |
+|----------|---------------|------|
+| `DB_URL` | `jdbc:postgresql://localhost:5432/byfood` | obrigatório |
+| `DB_USERNAME` | `postgres` | obrigatório |
+| `DB_PASSWORD` | `123456` | obrigatório |
+| `JWT_SECRET` | `byfood-dev-secret-key-...` | obrigatório (≥ 32 bytes) |
+| `JWT_EXPIRATION` | `86400000` | obrigatório |
+
+## Migrations
+
+| Versão | Conteúdo |
+|--------|----------|
+| V1 | Tabelas `restaurant` e `menu_item` + seed restaurante |
+| V2 | Tabela `admin_user` + seed admin |
+| V3 | Tabelas `customer_order` e `order_item` |
+| V4 | Seed de 16 itens no cardápio (Pizzas, Burgers, Bebidas, Sobremesas) |
+| V5 | Imagens Unsplash para todos os itens |
+
+## Testes
 
 ```bash
 .\mvnw.cmd clean verify
 ```
 
 Requer Docker Desktop rodando (Testcontainers).
-
-### Swagger UI
-
-- API docs: `http://localhost:8080/v3/api-docs`
-- UI: `http://localhost:8080/swagger-ui.html`
-
-## Migrations
-
-| Versão | Conteúdo                                  |
-|--------|-------------------------------------------|
-| V1     | Tabelas `restaurant` e `menu_item` + seed |
-| V2     | Tabela `admin_user` + seed admin          |
-| V3     | Tabelas `customer_order` e `order_item`   |
-
-## Status da Fase 2
-
-- [x] Modelos Order/OrderItem/OrderStatus (RECEIVED → PREPARING → READY → DELIVERED / CANCELLED)
-- [x] Migration V3
-- [x] `POST /public/orders` (cria pedido, calcula total)
-- [x] `GET /public/orders/{id}`
-- [x] `GET /admin/orders` + `PUT /admin/orders/{id}/status`
-- [x] Testes Fase 2 (10 novos)
-
-## Fase 3 — WhatsApp (link wa.me)
-
-Ao criar/consultar um pedido, a resposta inclui `whatsappLink` no formato:
-`https://wa.me/<numero_restaurante>?text=<mensagem_codificada>`
-
-A mensagem é **pré-preenchida** com o nome do restaurante, os itens do pedido com
-**subtotal por item** e preços no formato brasileiro (ex.: `2x Burger - R$ 25,00 = R$ 50,00`),
-o total e os dados do cliente. O cliente toca no link, o WhatsApp abre com o texto pronto
-e basta enviar — sem integração com Evolution API.
-
-## Melhorias — Opção B
-
-- **Paginação**: `GET /public/menu`, `GET /admin/menu` e `GET /admin/orders` aceitam `?page=&size=` e retornam uma estrutura `Page` estável (Spring Data `VIA_DTO`).
-- **Soft-delete**: `DELETE /admin/menu/{id}` não remove o item — marca `available=false`; ele some do cardápio público mas permanece no histórico/relatórios.
-- **Mensagens em português**: validações, erros de negócio e `ProblemDetail` agora respondem em PT.
-- **Rate limiting no login**: `POST /auth/login` permite até **5 tentativas por IP em 1 minuto**; acima disso responde `429`.
