@@ -1,0 +1,16 @@
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=300&fit=crop' WHERE name = 'Margherita';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&h=300&fit=crop' WHERE name = 'Calabresa';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&h=300&fit=crop' WHERE name = 'Quatro Queijos';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop' WHERE name = 'Frango com Catupiry';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop' WHERE name = 'Hambúrguer Clássico';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=400&h=300&fit=crop' WHERE name = 'Smash Burger';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=400&h=300&fit=crop' WHERE name = 'Bacon Burger';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?w=400&h=300&fit=crop' WHERE name = 'Cheddar Onion';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400&h=300&fit=crop' WHERE name = 'Suco Natural de Laranja';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1581006852262-e4307cf6283a?w=400&h=300&fit=crop' WHERE name = 'Guaraná Antarctica 350ml';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&h=300&fit=crop' WHERE name = 'Coca-Cola 350ml';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&h=300&fit=crop' WHERE name = 'Água Mineral 500ml';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&h=300&fit=crop' WHERE name = 'Pudim de Leite';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=400&h=300&fit=crop' WHERE name = 'Brownie com Sorvete';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&h=300&fit=crop' WHERE name = 'Petit Gâteau';
+UPDATE menu_item SET image_url = 'https://images.unsplash.com/photo-1624371414361-e670f4aa2295?w=400&h=300&fit=crop' WHERE name = 'Churros';
