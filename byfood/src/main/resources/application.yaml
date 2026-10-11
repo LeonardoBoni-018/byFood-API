@@ -6,12 +6,52 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        # Carrega coleções lazy (ex.: itens dos pedidos) em lote, evitando N+1 nas listagens
+        default_batch_fetch_size: 50
+
+  datasource:
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 1
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
 
   flyway:
     enabled: true
 
+  data:
+    web:
+      pageable:
+        max-page-size: 100
+
 server:
-  port: 8080
+  port: ${PORT:8080}
+  # Confia apenas em proxies internos (Render/Railway/Fly) para resolver o IP real do cliente
+  forward-headers-strategy: native
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: ${TOMCAT_MAX_THREADS:50}
+  compression:
+    enabled: true
+    min-response-size: 1KB
+    mime-types: application/json,application/problem+json,text/plain
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
 
 springdoc:
   api-docs:
@@ -23,3 +63,8 @@ app:
   jwt:
     secret: ${JWT_SECRET:byfood-dev-secret-key-change-in-production-123456}
     expiration: ${JWT_EXPIRATION:86400000}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:4173}
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:}

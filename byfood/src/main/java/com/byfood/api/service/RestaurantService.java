@@ -5,6 +5,7 @@ import com.byfood.api.exception.NotFoundException;
 import com.byfood.api.mapper.RestaurantMapper;
 import com.byfood.api.repository.RestaurantRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RestaurantService {
@@ -15,6 +16,7 @@ public class RestaurantService {
         this.repository = repository;
     }
 
+    @Transactional(readOnly = true)
     public RestaurantResponse getRestaurant() {
         return repository.findFirstByOrderByIdAsc()
                 .map(RestaurantMapper::toResponse)

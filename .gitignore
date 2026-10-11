@@ -1,3 +1,7 @@
 # IntelliJ IDEA
 .idea/
 *.iml
+
+# JVM crash logs / env
+hs_err_pid*.log
+.env
