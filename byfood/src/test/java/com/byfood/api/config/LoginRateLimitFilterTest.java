@@ -12,14 +12,18 @@ class LoginRateLimitFilterTest {
 
     private final LoginRateLimitFilter filter = new LoginRateLimitFilter(3, 60_000L);
 
-    private MockHttpServletResponse requestLogin() throws Exception {
+    private MockHttpServletResponse requestLogin(String ip) throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/auth/login");
-        request.setRemoteAddr("10.0.0.1");
+        request.setRemoteAddr(ip);
         MockHttpServletResponse response = new MockHttpServletResponse();
         AtomicInteger passed = new AtomicInteger();
         filter.doFilter(request, response,
                 (req, res) -> passed.incrementAndGet());
         return response;
+    }
+
+    private MockHttpServletResponse requestLogin() throws Exception {
+        return requestLogin("10.0.0.1");
     }
 
     @Test
@@ -38,7 +42,29 @@ class LoginRateLimitFilterTest {
         MockHttpServletResponse response = requestLogin();
 
         assertThat(response.getStatus()).isEqualTo(429);
+        assertThat(response.getHeader("Retry-After")).isNotBlank();
         assertThat(response.getContentAsString()).contains("Muitas tentativas de login");
+    }
+
+    @Test
+    void shouldTrackClientsIndependently() throws Exception {
+        requestLogin("10.0.0.1");
+        requestLogin("10.0.0.1");
+        requestLogin("10.0.0.1");
+
+        assertThat(requestLogin("10.0.0.1").getStatus()).isEqualTo(429);
+        assertThat(requestLogin("10.0.0.9").getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void shouldEvictClientsWithoutRecentAttempts() throws Exception {
+        requestLogin("10.0.0.1");
+        requestLogin("10.0.0.2");
+        assertThat(filter.trackedClients()).isEqualTo(2);
+
+        filter.evictStale(System.currentTimeMillis() + 120_000L);
+
+        assertThat(filter.trackedClients()).isZero();
     }
 
     @Test
