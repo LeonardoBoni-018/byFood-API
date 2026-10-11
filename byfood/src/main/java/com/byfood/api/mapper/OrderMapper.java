@@ -13,6 +13,7 @@ public final class OrderMapper {
     public static OrderResponse toResponse(Order order, String whatsappLink) {
         return new OrderResponse(
                 order.getId(),
+                order.getTrackingCode(),
                 order.getCustomerName(),
                 order.getCustomerPhone(),
                 order.getCustomerAddress(),

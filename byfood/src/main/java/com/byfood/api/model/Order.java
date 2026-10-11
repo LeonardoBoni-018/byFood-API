@@ -7,6 +7,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "customer_order")
@@ -20,6 +21,10 @@ public class Order extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "tracking_code", nullable = false, unique = true, updatable = false)
+    @Builder.Default
+    private UUID trackingCode = UUID.randomUUID();
 
     @Column(name = "customer_name", nullable = false, length = 120)
     private String customerName;

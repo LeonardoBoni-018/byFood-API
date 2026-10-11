@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/public/orders")
@@ -22,11 +23,11 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<OrderResponse> create(@Valid @RequestBody OrderRequest request) {
         OrderResponse created = service.createOrder(request);
-        return ResponseEntity.created(URI.create("/public/orders/" + created.id())).body(created);
+        return ResponseEntity.created(URI.create("/public/orders/" + created.trackingCode())).body(created);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<OrderResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getOrder(id));
+    @GetMapping("/{trackingCode}")
+    public ResponseEntity<OrderResponse> getByTrackingCode(@PathVariable UUID trackingCode) {
+        return ResponseEntity.ok(service.getOrderByTrackingCode(trackingCode));
     }
 }
