@@ -27,7 +27,7 @@ A API sobe na porta **8080**.
 ### Credenciais admin
 
 - Usuário: `admin`
-- Senha: `admin123`
+- Senha local: `admin123` (em produção é substituída por `ADMIN_PASSWORD`)
 
 ### Swagger UI
 
@@ -40,7 +40,7 @@ A API sobe na porta **8080**.
 | GET | `/public/restaurant` | público | Dados do restaurante |
 | GET | `/public/menu` | público | Cardápio paginado |
 | POST | `/public/orders` | público | Cria pedido |
-| GET | `/public/orders/{id}` | público | Consulta pedido |
+| GET | `/public/orders/{trackingCode}` | público | Consulta pedido pelo código UUID (não sequencial) |
 | POST | `/auth/login` | público | Login admin (JWT) |
 | GET | `/admin/menu` | JWT | Lista cardápio (paginado) |
 | POST | `/admin/menu` | JWT | Cria item |
@@ -57,7 +57,23 @@ A API sobe na porta **8080**.
 | `DB_USERNAME` | `postgres` | obrigatório |
 | `DB_PASSWORD` | `123456` | obrigatório |
 | `JWT_SECRET` | `byfood-dev-secret-key-...` | obrigatório (≥ 32 bytes) |
-| `JWT_EXPIRATION` | `86400000` | obrigatório |
+| `JWT_EXPIRATION` | `86400000` | opcional (`43200000`) |
+| `ADMIN_USERNAME` | `admin` | opcional |
+| `ADMIN_PASSWORD` | vazio (mantém `admin123` do seed) | **obrigatório**, mín. 8 caracteres |
+| `CORS_ALLOWED_ORIGINS` | `localhost:3000,5173,4173` | **obrigatório** (aceita curingas, ex.: `https://byfood-*.vercel.app`) |
+| `DB_POOL_SIZE` | `5` | opcional |
+
+## Deploy
+
+- **Banco:** Neon (Postgres). Use a connection string direta, convertida para JDBC (veja `byfood/.env.example`).
+- **API:** Render, via `render.yaml` (Blueprint) com Docker. Health check em `/actuator/health`.
+- **Front:** Vercel, apontando `VITE_API_URL` para a URL da API no Render.
+
+## Segurança
+
+- Rate limit por IP em `/auth/login` (5/min) e `POST /public/orders`
+- Pedidos públicos identificados por UUID (`trackingCode`), evitando enumeração
+- CORS restrito, headers de segurança, autorização deny-by-default, Swagger desabilitado em produção
 
 ## Migrations
 
@@ -68,6 +84,7 @@ A API sobe na porta **8080**.
 | V3 | Tabelas `customer_order` e `order_item` |
 | V4 | Seed de 16 itens no cardápio (Pizzas, Burgers, Bebidas, Sobremesas) |
 | V5 | Imagens Unsplash para todos os itens |
+| V6 | `tracking_code` (UUID) em pedidos e índice do cardápio |
 
 ## Testes
 
