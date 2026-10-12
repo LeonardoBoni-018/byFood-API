@@ -17,11 +17,22 @@ public class Restaurant extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Identificador público e estável usado nas URLs (/lojas/{slug}). */
+    @Column(nullable = false, unique = true, length = 80)
+    private String slug;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private AppUser owner;
+
     @Column(nullable = false, length = 120)
     private String name;
 
     @Column(length = 500)
     private String description;
+
+    @Column(nullable = false, length = 60)
+    private String cuisine;
 
     @Column(nullable = false, length = 255)
     private String address;
@@ -34,4 +45,11 @@ public class Restaurant extends BaseEntity {
 
     @Column(name = "opening_hours", length = 255)
     private String openingHours;
+
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
 }

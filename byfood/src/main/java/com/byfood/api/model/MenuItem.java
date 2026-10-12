@@ -19,6 +19,10 @@ public class MenuItem extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "restaurant_id", nullable = false, updatable = false)
+    private Restaurant restaurant;
+
     @Column(nullable = false, length = 150)
     private String name;
 

@@ -26,6 +26,15 @@ public class Order extends BaseEntity {
     @Builder.Default
     private UUID trackingCode = UUID.randomUUID();
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "restaurant_id", nullable = false, updatable = false)
+    private Restaurant restaurant;
+
+    /** Preenchido quando o pedido é feito por um cliente autenticado; pedidos de visitante ficam nulos. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", updatable = false)
+    private AppUser customer;
+
     @Column(name = "customer_name", nullable = false, length = 120)
     private String customerName;
 
