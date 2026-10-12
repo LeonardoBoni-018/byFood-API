@@ -10,6 +10,8 @@ import java.util.UUID;
 public record OrderResponse(
         Long id,
         UUID trackingCode,
+        String restaurantName,
+        String restaurantSlug,
         String customerName,
         String customerPhone,
         String customerAddress,

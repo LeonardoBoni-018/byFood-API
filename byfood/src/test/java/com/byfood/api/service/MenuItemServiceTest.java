@@ -1,5 +1,6 @@
 package com.byfood.api.service;
 
+import com.byfood.api.TestFixtures;
 import com.byfood.api.TestcontainersConfiguration;
 import com.byfood.api.dto.MenuItemRequest;
 import com.byfood.api.dto.MenuItemResponse;
@@ -22,40 +23,34 @@ class MenuItemServiceTest {
     @Autowired
     private MenuItemService service;
 
+    @Autowired
+    private AuthService authService;
+
+    @Autowired
+    private RestaurantService restaurantService;
+
     private MenuItemRequest sampleRequest() {
-        return new MenuItemRequest(
-                "Pizza Margherita",
-                "Tomato, mozzarella and basil",
-                new BigDecimal("39.90"),
-                "Pizza",
-                null,
-                true);
+        return new MenuItemRequest("Pizza Margherita", "Tomato, mozzarella and basil",
+                new BigDecimal("39.90"), "Pizza", null, true);
     }
 
     @Test
     void shouldCreateAndReadMenuItem() {
-        MenuItemResponse created = service.createMenuItem(sampleRequest());
+        var store = TestFixtures.store(authService, restaurantService, "Loja Menu");
+
+        MenuItemResponse created = service.create(store.ownerId(), sampleRequest());
 
         assertThat(created.id()).isNotNull();
-        assertThat(created.name()).isEqualTo("Pizza Margherita");
-
-        MenuItemResponse found = service.getMenuItem(created.id());
-        assertThat(found.price()).isEqualByComparingTo("39.90");
+        assertThat(service.getForOwner(store.ownerId(), created.id()).price()).isEqualByComparingTo("39.90");
     }
 
     @Test
     void shouldUpdateMenuItem() {
-        MenuItemResponse created = service.createMenuItem(sampleRequest());
+        var store = TestFixtures.store(authService, restaurantService, "Loja Update");
+        MenuItemResponse created = service.create(store.ownerId(), sampleRequest());
 
-        MenuItemRequest update = new MenuItemRequest(
-                "Pizza Margherita XL",
-                "Tomato, mozzarella and basil",
-                new BigDecimal("49.90"),
-                "Pizza",
-                null,
-                false);
-
-        MenuItemResponse updated = service.updateMenuItem(created.id(), update);
+        MenuItemResponse updated = service.update(store.ownerId(), created.id(), new MenuItemRequest(
+                "Pizza Margherita XL", "desc", new BigDecimal("49.90"), "Pizza", null, false));
 
         assertThat(updated.name()).isEqualTo("Pizza Margherita XL");
         assertThat(updated.price()).isEqualByComparingTo("49.90");
@@ -63,20 +58,43 @@ class MenuItemServiceTest {
     }
 
     @Test
-    void shouldSoftDeleteMenuItem() {
-        MenuItemResponse created = service.createMenuItem(sampleRequest());
+    void shouldSoftDeleteAndHideFromPublicMenu() {
+        var store = TestFixtures.store(authService, restaurantService, "Loja Delete");
+        MenuItemResponse created = service.create(store.ownerId(), sampleRequest());
 
-        service.deleteMenuItem(created.id());
+        service.delete(store.ownerId(), created.id());
 
-        MenuItemResponse found = service.getMenuItem(created.id());
-        assertThat(found.available()).isFalse();
-        assertThat(service.getAvailableMenu(Pageable.unpaged()))
-                .noneMatch(item -> item.id().equals(created.id()));
+        assertThat(service.getForOwner(store.ownerId(), created.id()).available()).isFalse();
+        assertThat(service.getPublicMenu(store.slug(), Pageable.unpaged())).isEmpty();
     }
 
     @Test
     void shouldThrowNotFoundForUnknownId() {
-        assertThatThrownBy(() -> service.getMenuItem(9999L))
+        var store = TestFixtures.store(authService, restaurantService, "Loja 404");
+
+        assertThatThrownBy(() -> service.getForOwner(store.ownerId(), 999_999L))
                 .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void shouldNotTouchAnotherStoresMenu() {
+        var owner = TestFixtures.store(authService, restaurantService, "Dona do Prato");
+        var intruder = TestFixtures.store(authService, restaurantService, "Intruso");
+        Long itemId = service.create(owner.ownerId(), sampleRequest()).id();
+
+        assertThatThrownBy(() -> service.getForOwner(intruder.ownerId(), itemId)).isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> service.update(intruder.ownerId(), itemId, sampleRequest())).isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> service.delete(intruder.ownerId(), itemId)).isInstanceOf(NotFoundException.class);
+        assertThat(service.getForOwner(owner.ownerId(), itemId).available()).isTrue();
+    }
+
+    @Test
+    void shouldListOnlyOwnItems() {
+        var a = TestFixtures.store(authService, restaurantService, "Loja A Lista");
+        var b = TestFixtures.store(authService, restaurantService, "Loja B Lista");
+        service.create(a.ownerId(), sampleRequest());
+
+        assertThat(service.getAllForOwner(a.ownerId(), Pageable.unpaged())).hasSize(1);
+        assertThat(service.getAllForOwner(b.ownerId(), Pageable.unpaged())).isEmpty();
     }
 }

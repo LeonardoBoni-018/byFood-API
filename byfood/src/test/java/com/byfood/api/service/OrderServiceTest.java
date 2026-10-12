@@ -1,19 +1,21 @@
 package com.byfood.api.service;
 
+import com.byfood.api.TestFixtures;
 import com.byfood.api.TestcontainersConfiguration;
-import com.byfood.api.dto.MenuItemRequest;
+import com.byfood.api.config.AuthUser;
 import com.byfood.api.dto.OrderItemRequest;
 import com.byfood.api.dto.OrderRequest;
 import com.byfood.api.dto.OrderResponse;
 import com.byfood.api.exception.ConflictException;
 import com.byfood.api.exception.NotFoundException;
 import com.byfood.api.model.OrderStatus;
+import com.byfood.api.model.UserRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,128 +32,160 @@ class OrderServiceTest {
     @Autowired
     private MenuItemService menuItemService;
 
-    private Long createMenuItem(String name, BigDecimal price) {
-        return menuItemService.createMenuItem(new MenuItemRequest(
-                name, "desc", price, "Main", null, true)).id();
+    @Autowired
+    private AuthService authService;
+
+    @Autowired
+    private RestaurantService restaurantService;
+
+    private TestFixtures.Store newStore() {
+        return TestFixtures.store(authService, restaurantService, "Loja " + UUID.randomUUID());
     }
 
-    private OrderResponse createOrder(Long itemId, int quantity) {
-        return orderService.createOrder(new OrderRequest(
-                "John Doe", "+5511999998888", "Rua A, 10",
-                List.of(new OrderItemRequest(itemId, quantity))));
+    private Long item(TestFixtures.Store store, String name, String price) {
+        return TestFixtures.menuItem(menuItemService, store.ownerId(), name, price);
+    }
+
+    private OrderResponse order(TestFixtures.Store store, Long itemId, int quantity) {
+        return orderService.createOrder(store.slug(), new OrderRequest("John Doe", "+5511999998888", "Rua A, 10",
+                List.of(new OrderItemRequest(itemId, quantity))), null);
     }
 
     @Test
-    void shouldCreateOrderWithComputedTotal() {
-        Long itemId = createMenuItem("Burger", new BigDecimal("25.00"));
+    void shouldCreateOrderWithComputedTotalAndStoreData() {
+        var store = newStore();
+        Long itemId = item(store, "Burger", "25.00");
 
-        OrderResponse created = createOrder(itemId, 2);
+        OrderResponse created = order(store, itemId, 2);
 
-        assertThat(created.id()).isNotNull();
         assertThat(created.trackingCode()).isNotNull();
         assertThat(created.status()).isEqualTo(OrderStatus.RECEIVED);
         assertThat(created.total()).isEqualByComparingTo("50.00");
-        assertThat(created.items()).hasSize(1);
-        assertThat(created.items().get(0).itemName()).isEqualTo("Burger");
+        assertThat(created.restaurantSlug()).isEqualTo(store.slug());
+        assertThat(created.whatsappLink()).startsWith("https://wa.me/5511988880000?text=");
     }
 
     @Test
     void shouldComputeTotalWithMultipleItems() {
-        Long burger = createMenuItem("Burger", new BigDecimal("25.00"));
-        Long soda = createMenuItem("Soda", new BigDecimal("6.50"));
+        var store = newStore();
+        Long burger = item(store, "Burger", "25.00");
+        Long soda = item(store, "Soda", "6.50");
 
-        OrderResponse created = orderService.createOrder(new OrderRequest(
-                "John Doe", "+5511999998888", "Rua A, 10",
-                List.of(new OrderItemRequest(burger, 2), new OrderItemRequest(soda, 3))));
+        OrderResponse created = orderService.createOrder(store.slug(), new OrderRequest("John", "+5511999998888", "Rua A, 10",
+                List.of(new OrderItemRequest(burger, 2), new OrderItemRequest(soda, 3))), null);
 
         assertThat(created.total()).isEqualByComparingTo("69.50");
         assertThat(created.items()).hasSize(2);
     }
 
     @Test
-    void shouldReadCreatedOrder() {
-        Long itemId = createMenuItem("Pizza", new BigDecimal("39.90"));
+    void shouldRejectItemFromAnotherStore() {
+        var storeA = newStore();
+        var storeB = newStore();
+        Long itemOfB = item(storeB, "Prato de B", "10.00");
 
-        OrderResponse created = orderService.createOrder(new OrderRequest(
-                "Jane Doe", "+5511999997777", "Rua B, 20",
-                List.of(new OrderItemRequest(itemId, 1))));
-
-        OrderResponse found = orderService.getOrder(created.id());
-
-        assertThat(found.customerName()).isEqualTo("Jane Doe");
-        assertThat(found.total()).isEqualByComparingTo("39.90");
+        assertThatThrownBy(() -> order(storeA, itemOfB, 1))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("nesta loja");
     }
 
     @Test
-    void shouldFindOrderByTrackingCode() {
-        Long itemId = createMenuItem("Pizza", new BigDecimal("39.90"));
-        OrderResponse created = createOrder(itemId, 1);
-
-        OrderResponse found = orderService.getOrderByTrackingCode(created.trackingCode());
-
-        assertThat(found.id()).isEqualTo(created.id());
-    }
-
-    @Test
-    void shouldThrowNotFoundForUnknownTrackingCode() {
-        assertThatThrownBy(() -> orderService.getOrderByTrackingCode(UUID.randomUUID()))
-                .isInstanceOf(NotFoundException.class);
-    }
-
-    @Test
-    void shouldThrowNotFoundForUnknownOrder() {
-        assertThatThrownBy(() -> orderService.getOrder(9999L))
-                .isInstanceOf(NotFoundException.class);
-    }
-
-    @Test
-    void shouldThrowNotFoundForUnknownMenuItem() {
-        OrderRequest request = new OrderRequest(
-                "John Doe", "+5511999998888", "Rua A, 10",
-                List.of(new OrderItemRequest(9999L, 1)));
-
-        assertThatThrownBy(() -> orderService.createOrder(request))
+    void shouldRejectOrderForUnknownStore() {
+        assertThatThrownBy(() -> orderService.createOrder("loja-inexistente", new OrderRequest("J", "+5511999998888", "R",
+                List.of(new OrderItemRequest(1L, 1))), null))
                 .isInstanceOf(NotFoundException.class);
     }
 
     @Test
     void shouldRejectUnavailableMenuItem() {
-        Long itemId = createMenuItem("Old item", new BigDecimal("10.00"));
-        menuItemService.deleteMenuItem(itemId);
+        var store = newStore();
+        Long itemId = item(store, "Old item", "10.00");
+        menuItemService.delete(store.ownerId(), itemId);
 
-        assertThatThrownBy(() -> createOrder(itemId, 1))
+        assertThatThrownBy(() -> order(store, itemId, 1))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("não está disponível");
     }
 
     @Test
-    void shouldUpdateOrderStatus() {
-        Long itemId = createMenuItem("Soda", new BigDecimal("6.00"));
-        OrderResponse created = createOrder(itemId, 1);
+    void shouldFindOrderByTrackingCode() {
+        var store = newStore();
+        OrderResponse created = order(store, item(store, "Pizza", "39.90"), 1);
 
-        OrderResponse updated = orderService.updateOrderStatus(created.id(), OrderStatus.PREPARING);
+        assertThat(orderService.getOrderByTrackingCode(created.trackingCode()).id()).isEqualTo(created.id());
+        assertThatThrownBy(() -> orderService.getOrderByTrackingCode(UUID.randomUUID()))
+                .isInstanceOf(NotFoundException.class);
+    }
 
-        assertThat(updated.status()).isEqualTo(OrderStatus.PREPARING);
+    @Test
+    void shouldLinkOrderToLoggedCustomerAndListOnlyTheirs() {
+        var store = newStore();
+        Long itemId = item(store, "Soda", "6.00");
+        var customer = TestFixtures.customer(authService);
+        var other = TestFixtures.customer(authService);
+        var principal = new AuthUser(customer.userId(), customer.email(), UserRole.CUSTOMER);
+
+        orderService.createOrder(store.slug(), new OrderRequest("Cliente", "+5511999998888", "Rua A, 10",
+                List.of(new OrderItemRequest(itemId, 1))), principal);
+        order(store, itemId, 1); // pedido de visitante
+
+        assertThat(orderService.getOrdersForCustomer(customer.userId(), PageRequest.of(0, 10))).hasSize(1);
+        assertThat(orderService.getOrdersForCustomer(other.userId(), PageRequest.of(0, 10))).isEmpty();
+    }
+
+    @Test
+    void shouldIgnoreStoreTokenWhenLinkingCustomer() {
+        var store = newStore();
+        Long itemId = item(store, "Soda", "6.00");
+        var asStore = new AuthUser(store.ownerId(), store.email(), UserRole.STORE);
+
+        orderService.createOrder(store.slug(), new OrderRequest("Dono", "+5511999998888", "Rua A, 10",
+                List.of(new OrderItemRequest(itemId, 1))), asStore);
+
+        assertThat(orderService.getOrdersForCustomer(store.ownerId(), PageRequest.of(0, 10))).isEmpty();
+    }
+
+    @Test
+    void shouldListOrdersOnlyFromOwnStoreAndFilterByStatus() {
+        var a = newStore();
+        var b = newStore();
+        OrderResponse orderA = order(a, item(a, "A", "5.00"), 1);
+        order(b, item(b, "B", "5.00"), 1);
+        orderService.updateOrderStatus(a.ownerId(), orderA.id(), OrderStatus.PREPARING);
+
+        assertThat(orderService.getOrdersForOwner(a.ownerId(), null, PageRequest.of(0, 10))).hasSize(1);
+        assertThat(orderService.getOrdersForOwner(a.ownerId(), OrderStatus.PREPARING, PageRequest.of(0, 10))).hasSize(1);
+        assertThat(orderService.getOrdersForOwner(a.ownerId(), OrderStatus.RECEIVED, PageRequest.of(0, 10))).isEmpty();
+    }
+
+    @Test
+    void shouldNotUpdateStatusOfAnotherStoresOrder() {
+        var a = newStore();
+        var intruder = newStore();
+        OrderResponse orderA = order(a, item(a, "A", "5.00"), 1);
+
+        assertThatThrownBy(() -> orderService.updateOrderStatus(intruder.ownerId(), orderA.id(), OrderStatus.CANCELLED))
+                .isInstanceOf(NotFoundException.class);
+        assertThat(orderService.getOrderByTrackingCode(orderA.trackingCode()).status()).isEqualTo(OrderStatus.RECEIVED);
     }
 
     @Test
     void shouldNotChangeStatusOfFinishedOrder() {
-        Long itemId = createMenuItem("Soda", new BigDecimal("6.00"));
-        OrderResponse created = createOrder(itemId, 1);
-        orderService.updateOrderStatus(created.id(), OrderStatus.CANCELLED);
+        var store = newStore();
+        OrderResponse created = order(store, item(store, "Soda", "6.00"), 1);
+        orderService.updateOrderStatus(store.ownerId(), created.id(), OrderStatus.CANCELLED);
 
-        assertThatThrownBy(() -> orderService.updateOrderStatus(created.id(), OrderStatus.PREPARING))
+        assertThatThrownBy(() -> orderService.updateOrderStatus(store.ownerId(), created.id(), OrderStatus.PREPARING))
                 .isInstanceOf(ConflictException.class);
     }
 
     @Test
     void shouldAllowRepeatingCurrentStatusOfFinishedOrder() {
-        Long itemId = createMenuItem("Soda", new BigDecimal("6.00"));
-        OrderResponse created = createOrder(itemId, 1);
-        orderService.updateOrderStatus(created.id(), OrderStatus.DELIVERED);
+        var store = newStore();
+        OrderResponse created = order(store, item(store, "Soda", "6.00"), 1);
+        orderService.updateOrderStatus(store.ownerId(), created.id(), OrderStatus.DELIVERED);
 
-        OrderResponse again = orderService.updateOrderStatus(created.id(), OrderStatus.DELIVERED);
-
-        assertThat(again.status()).isEqualTo(OrderStatus.DELIVERED);
+        assertThat(orderService.updateOrderStatus(store.ownerId(), created.id(), OrderStatus.DELIVERED).status())
+                .isEqualTo(OrderStatus.DELIVERED);
     }
 }

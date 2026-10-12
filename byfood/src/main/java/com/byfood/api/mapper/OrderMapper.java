@@ -14,6 +14,8 @@ public final class OrderMapper {
         return new OrderResponse(
                 order.getId(),
                 order.getTrackingCode(),
+                order.getRestaurant().getName(),
+                order.getRestaurant().getSlug(),
                 order.getCustomerName(),
                 order.getCustomerPhone(),
                 order.getCustomerAddress(),
