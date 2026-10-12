@@ -35,19 +35,24 @@ A API sobe na porta **8080**.
 
 ## Endpoints
 
+Perfis: **visitante**, **CUSTOMER** (cliente) e **STORE** (dono de loja). Cada loja só enxerga e altera os próprios dados.
+
 | Método | Rota | Acesso | Descrição |
 |--------|------|--------|-----------|
-| GET | `/public/restaurant` | público | Dados do restaurante |
-| GET | `/public/menu` | público | Cardápio paginado |
-| POST | `/public/orders` | público | Cria pedido |
-| GET | `/public/orders/{trackingCode}` | público | Consulta pedido pelo código UUID (não sequencial) |
-| POST | `/auth/login` | público | Login admin (JWT) |
-| GET | `/admin/menu` | JWT | Lista cardápio (paginado) |
-| POST | `/admin/menu` | JWT | Cria item |
-| PUT | `/admin/menu/{id}` | JWT | Atualiza item |
-| DELETE | `/admin/menu/{id}` | JWT | Soft-delete (indisponível) |
-| GET | `/admin/orders` | JWT | Lista pedidos (paginado) |
-| PUT | `/admin/orders/{id}/status` | JWT | Atualiza status |
+| GET | `/public/restaurants` | público | Vitrine de lojas (`q`, `cuisine`, paginada) |
+| GET | `/public/restaurants/cuisines` | público | Tipos de comida disponíveis |
+| GET | `/public/restaurants/{slug}` | público | Dados da loja |
+| GET | `/public/restaurants/{slug}/menu` | público | Cardápio (itens disponíveis) |
+| POST | `/public/restaurants/{slug}/orders` | público | Cria pedido (visitante ou cliente logado) |
+| GET | `/public/orders/{trackingCode}` | público | Acompanha pedido pelo código UUID |
+| POST | `/auth/login` | público | Login (JWT com papel) |
+| POST | `/auth/register/customer` | público | Cadastro de cliente |
+| POST | `/auth/register/store` | público | Cadastro de loja + dono |
+| GET | `/me`, `/me/orders` | CUSTOMER | Perfil e histórico de pedidos |
+| GET/PUT | `/store/restaurant` | STORE | Dados da própria loja |
+| GET/POST/PUT/DELETE | `/store/menu[/{id}]` | STORE | Cardápio da própria loja (DELETE = remoção lógica) |
+| GET | `/store/orders` | STORE | Pedidos da loja (`status`, paginado) |
+| PUT | `/store/orders/{id}/status` | STORE | Atualiza status |
 
 ## Variáveis de ambiente
 
@@ -71,7 +76,7 @@ A API sobe na porta **8080**.
 
 ## Segurança
 
-- Rate limit por IP em `/auth/login` (5/min) e `POST /public/orders`
+- Rate limit por IP em `/auth/login` (5/min), cadastros e criação de pedidos
 - Pedidos públicos identificados por UUID (`trackingCode`), evitando enumeração
 - CORS restrito, headers de segurança, autorização deny-by-default, Swagger desabilitado em produção
 
@@ -85,6 +90,7 @@ A API sobe na porta **8080**.
 | V4 | Seed de 16 itens no cardápio (Pizzas, Burgers, Bebidas, Sobremesas) |
 | V5 | Imagens Unsplash para todos os itens |
 | V6 | `tracking_code` (UUID) em pedidos e índice do cardápio |
+| V7 | Multi-loja: `app_user`, lojas com dono/slug, cardápio e pedidos por loja (o `admin` vira dono da loja existente) |
 
 ## Testes
 
