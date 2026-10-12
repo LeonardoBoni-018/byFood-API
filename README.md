@@ -70,9 +70,9 @@ Perfis: **visitante**, **CUSTOMER** (cliente) e **STORE** (dono de loja). Cada l
 
 ## Deploy
 
-- **Banco:** Neon (Postgres). Use a connection string direta, convertida para JDBC (veja `byfood/.env.example`).
+- **Banco:** Neon (Postgres). Use a connection string direta (sem `-pooler`). `DB_URL` aceita tanto o formato JDBC quanto o `postgresql://user:senha@host/db?sslmode=require` copiado do Neon (usuário/senha são extraídos automaticamente).
 - **API:** Render, via `render.yaml` (Blueprint) com Docker. Health check em `/actuator/health`.
-- **Front:** Vercel, apontando `VITE_API_URL` para a URL da API no Render.
+- **Front:** Vercel, apontando `VITE_API_URL` para a URL da API no Render (sem ela o front chama `/api`, que na Vercel não existe). O plano free do Render "dorme" após inatividade: a primeira requisição pode levar 30–60 s.
 
 ## Segurança
 
