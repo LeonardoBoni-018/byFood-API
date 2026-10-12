@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Limita requisições por IP em uma janela deslizante para um único endpoint (método + caminho).
+ * Limita requisições por IP em uma janela deslizante para endpoints escolhidos por {@link #matches}.
  * O IP vem de {@code request.getRemoteAddr()}, que o Tomcat resolve a partir de X-Forwarded-For
  * apenas quando a requisição chega por um proxy interno confiável (server.forward-headers-strategy=native).
  */
@@ -24,25 +24,34 @@ public abstract class SlidingWindowRateLimitFilter extends OncePerRequestFilter 
 
     private static final int CLEANUP_EVERY = 500;
 
-    private final String method;
-    private final String path;
     private final int maxRequests;
     private final long windowMs;
     private final String message;
     private final Map<String, Deque<Long>> hits = new ConcurrentHashMap<>();
     private final AtomicInteger requestsSinceCleanup = new AtomicInteger();
 
-    protected SlidingWindowRateLimitFilter(String method, String path, int maxRequests, long windowMs, String message) {
-        this.method = method;
-        this.path = path;
+    protected SlidingWindowRateLimitFilter(int maxRequests, long windowMs, String message) {
         this.maxRequests = maxRequests;
         this.windowMs = windowMs;
         this.message = message;
     }
 
+    /** Atalho para o caso comum: método HTTP + caminho exato. */
+    protected SlidingWindowRateLimitFilter(String method, String path, int maxRequests, long windowMs, String message) {
+        this(maxRequests, windowMs, message);
+        this.exact = request -> path.equals(request.getRequestURI()) && method.equalsIgnoreCase(request.getMethod());
+    }
+
+    private java.util.function.Predicate<HttpServletRequest> exact;
+
+    /** Define quais requisições entram no limite. Subclasses podem sobrescrever para casar padrões. */
+    protected boolean matches(HttpServletRequest request) {
+        return exact != null && exact.test(request);
+    }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !(path.equals(request.getRequestURI()) && method.equalsIgnoreCase(request.getMethod()));
+        return !matches(request);
     }
 
     @Override

@@ -4,6 +4,7 @@ import java.time.Instant;
 
 public record LoginResponse(
         String token,
-        Instant expiresAt
+        Instant expiresAt,
+        UserResponse user
 ) {
 }

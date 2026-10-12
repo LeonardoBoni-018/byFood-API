@@ -31,15 +31,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader(AUTHORIZATION);
         if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
             try {
-                String username = jwtService.extractUsername(token);
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                AuthUser user = jwtService.parse(header.substring(7));
+                if (SecurityContextHolder.getContext().getAuthentication() == null) {
                     var authentication = new UsernamePasswordAuthenticationToken(
-                            username, null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+                            user, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.role().name())));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             } catch (JwtException | IllegalArgumentException ex) {
+                // Token inválido em rota pública é ignorado; rotas protegidas respondem 401
                 SecurityContextHolder.clearContext();
             }
         }

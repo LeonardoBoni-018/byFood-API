@@ -21,15 +21,17 @@ class OrderRateLimitFilterTest {
 
     @Test
     void shouldBlockOrderFloodFromSameClient() throws Exception {
-        assertThat(perform("POST", "/public/orders")).isEqualTo(200);
-        assertThat(perform("POST", "/public/orders")).isEqualTo(200);
-        assertThat(perform("POST", "/public/orders")).isEqualTo(429);
+        String uri = "/public/restaurants/pizzaria-do-ze/orders";
+        assertThat(perform("POST", uri)).isEqualTo(200);
+        assertThat(perform("POST", uri)).isEqualTo(200);
+        assertThat(perform("POST", uri)).isEqualTo(429);
     }
 
     @Test
-    void shouldNotLimitOrderTracking() throws Exception {
+    void shouldNotLimitOrderTrackingOrMenuReads() throws Exception {
         for (int i = 0; i < 5; i++) {
-            assertThat(perform("GET", "/public/orders")).isEqualTo(200);
+            assertThat(perform("GET", "/public/orders/abc")).isEqualTo(200);
+            assertThat(perform("GET", "/public/restaurants/pizzaria-do-ze/menu")).isEqualTo(200);
         }
     }
 }

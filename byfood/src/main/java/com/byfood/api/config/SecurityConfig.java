@@ -32,13 +32,16 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final LoginRateLimitFilter loginRateLimitFilter;
     private final OrderRateLimitFilter orderRateLimitFilter;
+    private final RegisterRateLimitFilter registerRateLimitFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           LoginRateLimitFilter loginRateLimitFilter,
-                          OrderRateLimitFilter orderRateLimitFilter) {
+                          OrderRateLimitFilter orderRateLimitFilter,
+                          RegisterRateLimitFilter registerRateLimitFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.loginRateLimitFilter = loginRateLimitFilter;
         this.orderRateLimitFilter = orderRateLimitFilter;
+        this.registerRateLimitFilter = registerRateLimitFilter;
     }
 
     @Bean
@@ -52,13 +55,15 @@ public class SecurityConfig {
                         .referrerPolicy(ref -> ref.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/public/**", "/auth/login", "/error",
+                        .requestMatchers("/public/**", "/auth/login", "/auth/register/**", "/error",
                                 "/v3/api-docs/**", "/swagger-ui/**",
                                 "/swagger-ui.html", "/actuator/health/**").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/store/**").hasRole("STORE")
+                        .requestMatchers("/me/**").hasRole("CUSTOMER")
                         .anyRequest().denyAll())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(loginRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(registerRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(orderRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

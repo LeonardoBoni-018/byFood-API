@@ -1,7 +1,8 @@
 package com.byfood.api.config;
 
-import com.byfood.api.model.AdminUser;
-import com.byfood.api.repository.AdminUserRepository;
+import com.byfood.api.model.AppUser;
+import com.byfood.api.model.UserRole;
+import com.byfood.api.repository.AppUserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,17 +19,22 @@ import static org.mockito.Mockito.when;
 
 class AdminCredentialsInitializerTest {
 
-    private final AdminUserRepository repository = mock(AdminUserRepository.class);
+    private final AppUserRepository repository = mock(AppUserRepository.class);
     private final PasswordEncoder encoder = new BCryptPasswordEncoder(4);
 
     private AdminCredentialsInitializer initializer(String password) {
         return new AdminCredentialsInitializer(repository, encoder, "admin", password);
     }
 
+    private AppUser admin(String rawPassword) {
+        return AppUser.builder().login("admin").name("Administrador").role(UserRole.STORE)
+                .passwordHash(encoder.encode(rawPassword)).build();
+    }
+
     @Test
     void shouldReplaceDefaultPassword() {
-        AdminUser admin = AdminUser.builder().username("admin").passwordHash(encoder.encode("admin123")).build();
-        when(repository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        AppUser admin = admin("admin123");
+        when(repository.findByLogin("admin")).thenReturn(Optional.of(admin));
 
         initializer("S3nh@Forte!").run(null);
 
@@ -38,17 +44,17 @@ class AdminCredentialsInitializerTest {
 
     @Test
     void shouldCreateAdminWhenMissing() {
-        when(repository.findByUsername("admin")).thenReturn(Optional.empty());
+        when(repository.findByLogin("admin")).thenReturn(Optional.empty());
 
         initializer("S3nh@Forte!").run(null);
 
-        verify(repository).save(any(AdminUser.class));
+        verify(repository).save(any(AppUser.class));
     }
 
     @Test
     void shouldNotRehashWhenPasswordAlreadyMatches() {
-        AdminUser admin = AdminUser.builder().username("admin").passwordHash(encoder.encode("S3nh@Forte!")).build();
-        when(repository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        AppUser admin = admin("S3nh@Forte!");
+        when(repository.findByLogin("admin")).thenReturn(Optional.of(admin));
 
         initializer("S3nh@Forte!").run(null);
 
@@ -59,7 +65,7 @@ class AdminCredentialsInitializerTest {
     void shouldDoNothingWithoutConfiguredPassword() {
         initializer("").run(null);
 
-        verify(repository, never()).findByUsername(any());
+        verify(repository, never()).findByLogin(any());
     }
 
     @Test
